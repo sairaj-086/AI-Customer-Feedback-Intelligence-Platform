@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id        String     @id @default(cuid())
+  name      String
+  createdAt DateTime   @default(now())
+  feedback  Feedback[]
+  reports   Report[]
+  themes    Theme[]
+  users     User[]
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role     @default(VIEWER)
+  tenantId  String
+  createdAt DateTime @default(now())
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+}
+
+model Feedback {
+  id           String     @id @default(cuid())
+  tenantId     String
+  channel      Channel
+  customerName String?
+  rawText      String
+  sentiment    Sentiment?
+  themeId      String?
+  summary      String?
+  classifiedAt DateTime?
+  createdAt    DateTime   @default(now())
+  tenant       Tenant     @relation(fields: [tenantId], references: [id])
+  theme        Theme?     @relation(fields: [themeId], references: [id])
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, sentiment])
+}
+
+model Theme {
+  id        String     @id @default(cuid())
+  tenantId  String
+  name      String
+  createdAt DateTime   @default(now())
+  feedback  Feedback[]
+  tenant    Tenant     @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, name])
+}
+
+model Report {
+  id          String   @id @default(cuid())
+  tenantId    String
+  title       String
+  periodStart DateTime
+  periodEnd   DateTime
+  content     String
+  createdAt   DateTime @default(now())
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  VIEWER
+}
+
+enum Channel {
+  EMAIL
+  SURVEY
+  APP_REVIEW
+  SUPPORT_TICKET
+  SOCIAL
+  OTHER
+}
+
+enum Sentiment {
+  POSITIVE
+  NEUTRAL
+  NEGATIVE
+}
